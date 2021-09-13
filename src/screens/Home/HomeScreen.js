@@ -1,117 +1,152 @@
-import React from "react";
-import { FlatList, Text, View, TouchableHighlight, Image } from "react-native";
-import styles from "./styles";
-import { recipes } from "../../data/dataArrays";
-import MenuImage from "../../components/MenuImage/MenuImage";
-import { Button, IconButton, Chip } from "react-native-paper";
-import { getCategoryName } from "../../data/MockDataAPI";
-import ChatButtonWidget from "../../components/VariantsWidgets/ChatButtonWidet";
+import * as React from "react";
+import {
+  Animated,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  SafeAreaView,
+} from "react-native";
+import { TabView, SceneMap } from "react-native-tab-view";
+import FeaturedTab from "./FeaturedTab";
+import { IconButton, Title } from "react-native-paper";
+import { shops } from "../../data/shopArrays";
+import ProductsTab from "../LandingScreen/ProductsTab";
+import BasketBtn from "../Basket/BasketBtn";
 
-export default class HomeScreen extends React.Component {
+const FirstRoute = (props) => {
+  return (
+    <View style={[styles.container]}>
+      <FeaturedTab {...props} />
+    </View>
+  );
+};
+const SecondRoute = (props) => (
+  <View style={[styles.container]}>
+    <ProductsTab {...props} />
+  </View>
+);
+
+let myTheme;
+
+export default class HomeTabs extends React.Component {
+  constructor(props) {
+    super(props);
+    this.id = this.props.navigation.getParam("id");
+    this.shop = shops.filter((shop) => shop.id === parseInt(this.id))[0];
+    this.themeColor = this.shop.themeColor;
+    myTheme = this.themeColor;
+  }
+
   static navigationOptions = ({ navigation }) => ({
-    headerRight: () => (
-      <IconButton
-        icon="shopping"
-        size={25}
-        onPress={() => navigation.navigate("Basket")}
-        style={{ marginRight: 9 }}
-      />
-    ),
-    title: navigation.getParam("category"),
-    headerLeft: () => (
-      <MenuImage
-        onPress={() => {
-          navigation.openDrawer();
+    header: () => (
+      <SafeAreaView
+        style={{
+          backgroundColor: myTheme,
         }}
-      />
+      >
+        <StatusBar
+          animated={true}
+          backgroundColor={myTheme}
+          barStyle={"default"}
+        />
+
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <IconButton icon="menu" onPress={() => navigation.openDrawer()} />
+          <BasketBtn navigation={navigation} />
+        </View>
+        <View style={{ alignItems: "center" }}>
+          <Title>{navigation.getParam("name")}</Title>
+        </View>
+      </SafeAreaView>
     ),
   });
 
-  constructor(props) {
-    super(props);
-    this.shopID = this.props.navigation.getParam("id");
-    this.data = recipes.filter(
-      (recipe) => recipe.shop === parseInt(this.shopID)
-    );
-  }
-
-  onPressRecipe = (item) => {
-    this.props.navigation.navigate("Recipe", { item });
+  state = {
+    index: 0,
+    routes: [
+      {
+        key: "first",
+        title: "Featured",
+        id: this.props.navigation.getParam("id"),
+        navigation: this.props.navigation,
+      },
+      {
+        key: "second",
+        title: "All Products",
+        navigation: this.props.navigation,
+        shop: this.props.navigation.getParam("id"),
+      },
+    ],
   };
 
-  chipStyles = {
-    position: "absolute",
-    bottom: 9,
-    right: 9,
-    color:"#2cd18a"
-  };
+  _handleIndexChange = (index) => this.setState({ index });
 
-  rating = (
-    <View
-      style={{
-        position: "absolute",
-        bottom: 9,
-        left: 6,
-        display: "flex",
-        flexDirection: "row",
-      }}
-    >
-      <Chip icon="star" size={10} style={{ border: "none" }}>
-        4.5
-      </Chip>
-    </View>
-  );
+  _renderTabBar = (props) => {
+    const inputRange = props.navigationState.routes.map((x, i) => i);
 
-  renderRecipes = ({ item }) => (
-    <TouchableHighlight
-      underlayColor="rgba(73,182,77,0.0)"
-      onPress={() => this.onPressRecipe(item)}
-    >
-      <View style={styles.container}>
-        <Image style={styles.photo} source={{ uri: item.photo_url }} />
-        <Text style={styles.title}>{item.title}</Text>
+    return (
+      <View style={[styles.tabBar, { backgroundColor: this.themeColor }]}>
+        {props.navigationState.routes.map((route, i) => {
+          const opacity = props.position.interpolate({
+            inputRange,
+            outputRange: inputRange.map((inputIndex) =>
+              inputIndex === i ? 1 : 0.5
+            ),
+          });
 
-        {this.rating}
-          <Button color="#2cd18a" disable style={this.chipStyles} size={10} >
-            Ksh 700
-          </Button>
-        
-        <View
-          style={{
-            position: "absolute",
-            alignSelf: "flex-end",
-            top: 6,
-            right: 6,
-            backgroundColor:"white",
-            padding:5,
-            borderRadius:12
-          }}
-        >
-          <Text
-            style={{
-              color:"orange"
-            }}
-          >
-            {getCategoryName(item.categoryId)}
-          </Text>
-        </View>
+          return (
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => this.setState({ index: i })}
+            >
+              <Animated.Text style={[{ opacity }]}>{route.title}</Animated.Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </TouchableHighlight>
-  );
+    );
+  };
+
+  _renderScene = SceneMap({
+    first: FirstRoute,
+    second: SecondRoute,
+  });
+
+  componentDidMount() {
+    console.log(this.props);
+  }
 
   render() {
     return (
-      <View style={{flex:1}}>
-        <FlatList
-          vertical
-          showsVerticalScrollIndicator={false}
-          numColumns={2}
-          data={this.data}
-          renderItem={this.renderRecipes}
-          keyExtractor={(item) => `${item.recipeId}`}
-        />
-        <ChatButtonWidget navigation={this.props.navigation}/>
-      </View>
+      <TabView
+        navigationState={this.state}
+        renderScene={this._renderScene}
+        renderTabBar={this._renderTabBar}
+        onIndexChange={this._handleIndexChange}
+        showPageIndicator={true}
+      />
     );
   }
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabBar: {
+    flexDirection: "row",
+    paddingTop: 18,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    padding: 16,
+  },
+});

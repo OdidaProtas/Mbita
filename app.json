@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": " Mushy",
+    "name": " Artik",
     "slug": "mushy",
-    "description": "Mushy Sales app",
+    "description": "Artik Sales app",
     "privacy": "public",
     "userInterfaceStyle": "light",
     "platforms": [
@@ -25,10 +25,10 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
-      "package": "com.ekkymerc.ekky"
+      "package": "com.bryodiiidah.artik"
     }
   }
 }
